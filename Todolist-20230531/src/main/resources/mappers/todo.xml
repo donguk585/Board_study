@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="com.springboot.todolist.domain.todo.TodoRepository">
+	<insert id="save" parameterType="com.springboot.todolist.domain.todo.Todo">
+		insert into
+			todo_mst
+		values(
+			0,
+			#{todo_content},
+			0,
+			#{importance_flag},
+			now(),
+			now()
+		)
+	</insert>
+	
+   <select id="getTodoList" parameterType="hashmap" resultType="com.springboot.todolist.domain.todo.Todo">
+      SELECT
+         tm.todo_code,
+         tm.todo_content,
+         tm.todo_complete,
+         tm.importance_flag,
+         
+         tt.total_count,
+         tc.incomplete_count,
+         
+         tm.create_date,
+         tm.update_date
+      FROM
+         todo_mst tm
+         LEFT OUTER JOIN (SELECT
+	                        COUNT(*) AS total_count
+	                     FROM
+	                        todo_mst
+	                     WHERE
+	                     <choose>
+	                        <when test='type.equals("importance")'>
+	                           importance_flag = 1
+	                        </when>
+	                        <when test='type.equals("complete")'>
+	                           todo_complete = 1
+	                        </when>
+	                        <when test='type.equals("incomplete")'>
+	                           todo_complete = 0
+	                        </when>
+	                        <otherwise>
+	                           1 = 1
+	                        </otherwise>
+	                     </choose>                        
+	                        ) tt ON(1 = 1)
+         LEFT OUTER JOIN (SELECT
+	                        COUNT(todo_complete) AS incomplete_count
+	                     FROM
+	                        todo_mst
+	                     WHERE
+	                        todo_complete = 0
+	                     <if test='type.equals("importance")'>
+	                        and importance_flag = 1
+	                     </if>
+	                        ) tc ON (1 = 1)   
+      WHERE
+         <choose>
+            <when test='type.equals("importance")'>
+               importance_flag = 1
+            </when>
+            <when test='type.equals("complete")'>
+               todo_complete = 1
+            </when>
+            <when test='type.equals("incomplete")'>
+               todo_complete = 0
+            </when>
+            <otherwise>
+               1 = 1
+            </otherwise>
+         </choose>   
+      order by
+         tm.todo_code desc
+      limit
+         #{index}, #{count}
+   </select>
+	
+<!-- 	<select id="getImportanceTodoListofIndex" parameterType="hashmap" resultType="com.springboot.todolist.domain.todo.Todo">
+	SELECT
+		sm.todo_code,
+		sm.todo_content,
+		sm.todo_complete,
+		sm.importance_flag,
+
+		um.total_count,
+		tm.incomplete_count,
+		
+		sm.create_date,
+		sm.update_date
+	FROM
+		todo_mst sm
+		LEFT OUTER JOIN (SELECT
+							COUNT(*) AS total_count
+						FROM
+							todo_mst
+						WHERE
+							importance_flag = 1) um ON (1 = 1)
+		LEFT OUTER JOIN (SELECT
+							COUNT(tt.todo_complete) AS incomplete_count
+						FROM
+							(SELECT
+								*
+							FROM
+								todo_mst
+							WHERE
+								importance_flag = 1
+							ORDER BY
+								todo_code DESC
+							LIMIT
+								0, #{count2}) tt
+						WHERE
+							tt.todo_complete = 0) tm ON (1 = 1)			
+	WHERE
+		sm.importance_flag = 1
+	ORDER BY
+		todo_code DESC
+	LIMIT
+		#{index}, #{count};
+	</select> -->
+	
+	<update id="updateTodoComplete" parameterType="Integer">
+	UPDATE
+		todo_mst
+	SET
+		todo_complete = case when todo_complete = 0 then 1 ELSE 0 end
+	WHERE
+		todo_code = #{code};
+	</update>
+	
+	<update id="importanceTodoComplete" parameterType="Integer">
+	UPDATE
+		todo_mst
+	SET
+		importance_flag = case when importance_flag = 0 then 1 ELSE 0 end
+	WHERE
+		todo_code = #{code};
+	</update>
+	
+	<update id="updateContentTodo" parameterType="com.springboot.todolist.domain.todo.Todo">
+	UPDATE
+		todo_mst
+	SET
+		todo_content = #{todo_content},
+		update_date = NOW()
+	WHERE
+		todo_code = #{todo_code};
+	</update>
+	
+	<delete id="deleteContentTodo" parameterType="Integer">
+	DELETE
+	FROM
+		todo_mst
+	WHERE
+		todo_code = #{todo_code};
+	</delete>
+	
+</mapper>
